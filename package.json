@@ -1,13 +1,13 @@
 {
   "name": "tizentube",
   "appName": "TizenTube",
-  "version": "1.9.5",
-  "description": "Testing High Resolution Thumbnails for TizenTube",
+  "version": "1.9.6",
+  "description": "update test",
   "packageType": "mods",
   "websiteURL": "https://youtube.com/tv?additionalDataUrl=http%3A%2F%2Flocalhost%3A8085%2Fdial%2Fapps%2FYouTube",
-  "main": "dist/userScript.js",
+  "main": "mods/userScript.js",
   "author": "Reis Can",
-  "serviceFile": "dist/service.js",
+  "serviceFile": "service/service.js",
   "keys": [
     "MediaPlayPause",
     "MediaPlay",
