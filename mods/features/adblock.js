@@ -30,6 +30,26 @@ JSON.parse = function () {
     r.adSlots = [];
   }
 
+  if (r?.streamingData?.adaptiveFormats) {
+    // Remove quality restrictions
+    r.streamingData.adaptiveFormats = r.streamingData.adaptiveFormats.map(
+      (format) => {
+        if (format.qualityLabel) {
+          // Remove any quality restrictions
+          delete format.targetDurationSec;
+        }
+        return format;
+      }
+    );
+  }
+
+  // Force enable higher qualities in player config
+  if (r?.responseContext?.serviceTrackingParams) {
+    // Add higher quality support flag
+    if (!r.playbackTracking) r.playbackTracking = {};
+    r.playbackTracking.videostatsPlaybackUrl =
+      r.playbackTracking?.videostatsPlaybackUrl || {};
+  }
   // Drop "masthead" ad from home screen
   if (
     r?.contents?.tvBrowseRenderer?.content?.tvSurfaceContentRenderer?.content
@@ -274,7 +294,15 @@ function hqify(items) {
 
     const thumbnails =
       item.tileRenderer.header.tileHeaderRenderer.thumbnail.thumbnails;
-    hqifyThumbnailArray(thumbnails);
+
+    // Check if the item is part of the home page recommendations
+    if (item.tileRenderer.style === "TILE_STYLE_YTLR_DEFAULT") {
+      // Attempt to load high-quality thumbnails
+      hqifyThumbnailArray(thumbnails);
+    } else {
+      // For other items, you can keep the existing logic or modify as needed
+      hqifyThumbnailArray(thumbnails);
+    }
   }
 }
 
@@ -332,6 +360,11 @@ function hqifyThumbnailArray(thumbnails) {
         }`,
         width: 640,
         height: 480,
+      },
+      {
+        url: `https://i.ytimg.com/vi/${videoID}/0.jpg${queryArgs || ""}`,
+        width: 480,
+        height: 360,
       }
     );
   } catch (e) {
