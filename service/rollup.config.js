@@ -29,7 +29,7 @@ function injectXmlContent() {
 export default {
   input: "service.js",
   output: {
-    file: "../dist/service.js",
+    file: "../service/service.js",
     format: "cjs",
   },
   plugins: [
