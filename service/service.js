@@ -31,8 +31,8 @@ const apps = {
           [
             new tizen.ApplicationControlData("module", [
               JSON.stringify({
-                moduleName: "github:opaayush/tizentube",
-                moduleType: "github",
+                moduleName: "@foxreis/tizentube",
+                moduleType: "npm",
                 args: launchData,
               }),
             ]),

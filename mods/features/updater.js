@@ -14,32 +14,22 @@ if (window.h5vcc && window.h5vcc.tizentube) {
 
   function getLatestRelease() {
     return fetch(
-      "https://raw.githubusercontent.com/OpAayush/TizenTube/main/package.json"
-    )
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
-        return response.json();
-      })
-      .then((packageJson) => {
-        // Transform package.json into a release-like object
-        return {
-          tag_name: `v${packageJson.version}`,
-          published_at: new Date().toISOString(), // Current date as fallback
-          body: packageJson.description || "No release notes available.",
-          assets: [
-            {
-              browser_download_url:
-                "https://github.com/OpAayush/TizenTube/releases/latest",
-            },
-          ],
-        };
-      });
+      "https://api.github.com/repos/reisxd/TizenTubeCobalt/releases/latest"
+    ).then((response) => {
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      return response.json();
+    });
   }
 
   const currentEpoch = Math.floor(Date.now() / 1000);
-  checkForUpdates();
+  if (configRead("dontCheckUpdateUntil") > currentEpoch) {
+    console.info(
+      "Skipping update check until",
+      new Date(configRead("dontCheckUpdateUntil") * 1000).toLocaleString()
+    );
+  } else checkForUpdates();
 
   function checkForUpdates() {
     getLatestRelease()
