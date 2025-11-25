@@ -1,0 +1,19 @@
+import "whatwg-fetch";
+import 'core-js/proposals/object-getownpropertydescriptors';
+import '@formatjs/intl-getcanonicallocales/polyfill.iife'
+import '@formatjs/intl-locale/polyfill.iife'
+import '@formatjs/intl-displaynames/polyfill.iife'
+import '@formatjs/intl-displaynames/locale-data/en';
+
+import "./domrect-polyfill";
+import "./features/adblock.js";
+import "./features/sponsorblock.js";
+import "./ui/ui.js";
+import "./ui/speedUI.js";
+import "./ui/theme.js";
+import "./ui/settings.js";
+import "./ui/disableWhosWatching.js";
+import "./features/moreSubtitles.js";
+import "./features/updater.js";
+import "./features/pictureInPicture.js";
+import "./ui/customUI.js";
