@@ -50763,6 +50763,7 @@ function _sendImmediate() {
     originalConsole[method].apply(console, args);
   };
 });
+console.log("User script loaded: Webhook console logger");
 app.use(cors(corsOptions));
 var PORT = 8085;
 var apps = {

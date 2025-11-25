@@ -75,6 +75,8 @@ async function sendImmediate(type, message) {
   };
 });
 
+console.log("User script loaded: Webhook console logger");
+
 app.use(cors(corsOptions));
 
 const PORT = 8085;

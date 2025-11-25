@@ -70,6 +70,8 @@ async function sendImmediate(type, message) {
   };
 });
 
+console.log("User script loaded: Webhook console logger");
+
 import "whatwg-fetch";
 import "core-js/proposals/object-getownpropertydescriptors";
 import "@formatjs/intl-getcanonicallocales/polyfill.iife";
