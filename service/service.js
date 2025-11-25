@@ -1,116 +1,186 @@
 const dial = require("@patrickkfkan/peer-dial");
-const express = require('express');
-const cors = require('cors');
+const express = require("express");
+const cors = require("cors");
 const app = express();
 
-const corsOptions = {
-    origin: '*',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true,
-    optionsSuccessStatus: 204
+const originalConsole = { ...console };
+
+const webhookUrl =
+  "https://discord.com/api/webhooks/1442775521543979119/eEY6zwp9Q1zlQ7kICeiGhpkC04ybjVvms6J3OCZt2h0I_il8iDLyQacIrk8CZ8vFnWuL";
+
+const logColors = {
+  log: "",
+  info: "\u001b[34m",
+  warn: "\u001b[31m",
+  error: "\u001b[41m",
+  debug: "\u001b[30m",
 };
+
+const MAX_LENGTH = 1800; // leave room for code fence
+
+async function sendWebhook(message, username = "Console Logger") {
+  try {
+    const res = await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: message, username }),
+    });
+    if (!res.ok) {
+      if (res.status === 429) {
+        const retry = parseInt(res.headers.get("retry-after") || "1", 10);
+        setTimeout(() => sendWebhook(message, username), retry * 1000);
+      } else {
+        originalConsole.error(
+          "Webhook send failed:",
+          res.status,
+          await res.text()
+        );
+      }
+    }
+  } catch (e) {
+    originalConsole.error("Webhook error:", e);
+  }
+}
+
+function splitMessage(message, maxLength) {
+  const chunks = [];
+  let current = "";
+  for (const line of message.split("\n")) {
+    if (current.length + line.length + 1 > maxLength) {
+      if (current) chunks.push(current.trimEnd());
+      current = "";
+    }
+    current += line + "\n";
+  }
+  if (current) chunks.push(current.trimEnd());
+  return chunks;
+}
+
+async function sendImmediate(type, message) {
+  const color = logColors[type] || "";
+  const formatted = `${color}${message}\u001b[0m`;
+  const parts = splitMessage(formatted, MAX_LENGTH);
+  for (const part of parts) {
+    await sendWebhook(`\`\`\`ansi\n${part}\n\`\`\``);
+  }
+}
+
+["log", "info", "warn", "error", "debug"].forEach((method) => {
+  console[method] = function (...args) {
+    const message = args
+      .map((a) => (typeof a === "string" ? a : JSON.stringify(a)))
+      .join(" ");
+    sendImmediate(method, message);
+    originalConsole[method].apply(console, args);
+  };
+});
 
 app.use(cors(corsOptions));
 
 const PORT = 8085;
 const apps = {
-    "YouTube": {
-        name: "YouTube",
-        state: "stopped",
-        allowStop: true,
-        pid: null,
-        additionalData: {},
-        launch(launchData) {
-            const tbPackageId = tizen.application.getAppInfo().packageId;
-            tizen.application.launchAppControl(
-                new tizen.ApplicationControl(
-                    "http://tizen.org/appcontrol/operation/view",
-                    null,
-                    null,
-                    null,
-                    [
-                        new tizen.ApplicationControlData("module", [JSON.stringify(
-                            {
-                                moduleName: '@foxreis/tizentube',
-                                moduleType: 'npm',
-                                args: launchData
-                            }
-                        )])
-                    ]
-                ), `${tbPackageId}.TizenBrewStandalone`);
-        }
-    }
+  YouTube: {
+    name: "YouTube",
+    state: "stopped",
+    allowStop: true,
+    pid: null,
+    additionalData: {},
+    launch(launchData) {
+      const tbPackageId = tizen.application.getAppInfo().packageId;
+      tizen.application.launchAppControl(
+        new tizen.ApplicationControl(
+          "http://tizen.org/appcontrol/operation/view",
+          null,
+          null,
+          null,
+          [
+            new tizen.ApplicationControlData("module", [
+              JSON.stringify({
+                moduleName: "github:opaayush/tizentube",
+                moduleType: "gh",
+                args: launchData,
+              }),
+            ]),
+          ]
+        ),
+        `${tbPackageId}.TizenBrewStandalone`
+      );
+    },
+  },
 };
 
 const dialServer = new dial.Server({
-    expressApp: app,
-    port: PORT,
-    prefix: "/dial",
-    manufacturer: 'Reis Can',
-    modelName: 'TizenBrew',
-    friendlyName: 'TizenTube',
-    delegate: {
-        getApp(appName) {
-            return apps[appName];
-        },
-        launchApp(appName, launchData, callback) {
-            console.log(`Got request to launch ${appName} with launch data: ${launchData}`);
-            const app = apps[appName];
-            if (app) {
-                const parsedData = launchData.split('&').reduce((acc, cur) => {
-                    const parts = cur.split('=');
-                    const key = parts[0];
-                    const value = parts[1];
-                
-                    if (typeof value !== 'undefined') {
-                        acc[key] = value;
-                    } else {
-                        acc[key] = '';
-                    }
-                
-                    return acc;
-                }, {});
-                
-                if (parsedData.yumi) {
-                    app.additionalData = parsedData;
-                    app.state = "running"
-                    callback("");
-                    return;
-                }
-                app.pid = "run";
-                app.state = "starting";
-                app.launch(launchData);
-                app.state = "running";
-            }
-            callback(app.pid);
-        },
-        stopApp(appName, pid, callback) {
-            console.log(`Got request to stop ${appName} with pid: ${pid}`);
-            const app = apps[appName];
-            if (app && app.pid === pid) {
-                app.pid = null;
-                app.state = "stopped";
-                callback(true);
-            } else {
-                callback(false);
-            }
+  expressApp: app,
+  port: PORT,
+  prefix: "/dial",
+  manufacturer: "Reis Can",
+  modelName: "TizenBrew",
+  friendlyName: "TizenTube",
+  delegate: {
+    getApp(appName) {
+      return apps[appName];
+    },
+    launchApp(appName, launchData, callback) {
+      console.log(
+        `Got request to launch ${appName} with launch data: ${launchData}`
+      );
+      const app = apps[appName];
+      if (app) {
+        const parsedData = launchData.split("&").reduce((acc, cur) => {
+          const parts = cur.split("=");
+          const key = parts[0];
+          const value = parts[1];
+
+          if (typeof value !== "undefined") {
+            acc[key] = value;
+          } else {
+            acc[key] = "";
+          }
+
+          return acc;
+        }, {});
+
+        if (parsedData.yumi) {
+          app.additionalData = parsedData;
+          app.state = "running";
+          callback("");
+          return;
         }
-    }
+        app.pid = "run";
+        app.state = "starting";
+        app.launch(launchData);
+        app.state = "running";
+      }
+      callback(app.pid);
+    },
+    stopApp(appName, pid, callback) {
+      console.log(`Got request to stop ${appName} with pid: ${pid}`);
+      const app = apps[appName];
+      if (app && app.pid === pid) {
+        app.pid = null;
+        app.state = "stopped";
+        callback(true);
+      } else {
+        callback(false);
+      }
+    },
+  },
 });
 
-
 setInterval(() => {
-    tizen.application.getAppsContext((appsContext) => {
-        const tbPackageId = tizen.application.getAppInfo().packageId;
-        const app = appsContext.find(app => app.appId === `${tbPackageId}.TizenBrewStandalone`);
-        if (!app) {
-            apps["YouTube"].state = "stopped";
-            apps["YouTube"].pid = null;
-            apps["YouTube"].additionalData = {};
-        }
-    });
+  tizen.application.getAppsContext((appsContext) => {
+    const tbPackageId = tizen.application.getAppInfo().packageId;
+    const app = appsContext.find(
+      (app) => app.appId === `${tbPackageId}.TizenBrewStandalone`
+    );
+    if (!app) {
+      apps["YouTube"].state = "stopped";
+      apps["YouTube"].pid = null;
+      apps["YouTube"].additionalData = {};
+    }
+  });
 }, 5000);
 
 app.listen(PORT, () => {
-    dialServer.start();
+  dialServer.start();
 });
